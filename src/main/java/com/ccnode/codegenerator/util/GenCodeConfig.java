@@ -11,13 +11,22 @@ import java.util.Map;
  * Created by zhengjun.du on 2016/04/16 23:28
  */
 public class GenCodeConfig {
-
+    public static final String MAPPER_SUFFIX = "Dao";
+    public static final String DAO_SUFFIX = "Dao";
+    public static final String SERVICE_SUFFIX = "Service";
     String projectPath = StringUtils.EMPTY;
     String serviceDir = StringUtils.EMPTY;
     String mapperDir = StringUtils.EMPTY;
     String sqlDir = StringUtils.EMPTY;
     String daoDir = StringUtils.EMPTY;
     String pojoName;
+    String daoSuffix;
+    String mapperSuffix;
+    String serviceSuffix;
+    String daoModulePath;
+    String serviceModulePath;
+    String mapperModulePath;
+
     Map<String,String> configMap = Maps.newHashMap();
 
     public Map<String, String> getConfigMap() {
@@ -74,5 +83,53 @@ public class GenCodeConfig {
 
     public void setDaoDir(String daoDir) {
         this.daoDir = daoDir;
+    }
+
+    public String getDaoSuffix() {
+        return daoSuffix;
+    }
+
+    public void setDaoSuffix(String daoSuffix) {
+        this.daoSuffix = daoSuffix;
+    }
+
+    public String getMapperSuffix() {
+        return mapperSuffix;
+    }
+
+    public void setMapperSuffix(String mapperSuffix) {
+        this.mapperSuffix = mapperSuffix;
+    }
+
+    public String getServiceSuffix() {
+        return serviceSuffix;
+    }
+
+    public void setServiceSuffix(String serviceSuffix) {
+        this.serviceSuffix = serviceSuffix;
+    }
+
+    public String getDaoModulePath() {
+        return daoModulePath;
+    }
+
+    public void setDaoModulePath(String daoModulePath) {
+        this.daoModulePath = daoModulePath;
+    }
+
+    public String getServiceModulePath() {
+        return serviceModulePath;
+    }
+
+    public void setServiceModulePath(String serviceModulePath) {
+        this.serviceModulePath = serviceModulePath;
+    }
+
+    public String getMapperModulePath() {
+        return mapperModulePath;
+    }
+
+    public void setMapperModulePath(String mapperModulePath) {
+        this.mapperModulePath = mapperModulePath;
     }
 }

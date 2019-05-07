@@ -3,8 +3,7 @@ package com.ccnode.codegenerator.genCode;
 import com.ccnode.codegenerator.enums.FileType;
 import com.ccnode.codegenerator.enums.MethodName;
 import com.ccnode.codegenerator.pojo.GenCodeResponse;
-import com.ccnode.codegenerator.util.GenCodeUtil;
-import com.ccnode.codegenerator.util.LoggerWrapper;
+import com.ccnode.codegenerator.util.*;
 import com.ccnode.codegenerator.enums.FileType;
 import com.ccnode.codegenerator.enums.MethodName;
 import com.ccnode.codegenerator.pojo.GenCodeResponse;
@@ -31,9 +30,9 @@ public class GenServiceService {
     public static void genService( GenCodeResponse response) {
         for (OnePojoInfo pojoInfo : response.getPojoInfos()) {
             try{
-                GeneratedFile fileInfo = GenCodeResponseHelper.getByFileType(pojoInfo, FileType.SERVICE);
+                GeneratedFile fileInfo = GenCodeResponseHelper.getByFileType(pojoInfo, FileType.SERVICE, response);
                 Boolean useGenericDao = Objects.equal(response.getUserConfigMap().get("usegenericdao"),"true");
-                genDaoFile(pojoInfo,fileInfo,useGenericDao);
+                genDaoFile(pojoInfo,fileInfo,useGenericDao, response);
 
             }catch(Throwable e){
                 LOGGER.error("GenServiceService genService error", e);
@@ -42,9 +41,14 @@ public class GenServiceService {
         }
     }
 
-    private static void genDaoFile(OnePojoInfo onePojoInfo, GeneratedFile fileInfo, Boolean useGenericDao) {
+    private static void genDaoFile(OnePojoInfo onePojoInfo, GeneratedFile fileInfo, Boolean useGenericDao, GenCodeResponse response) {
         String pojoName = onePojoInfo.getPojoName();
-        String pojoNameDao = pojoName + "Dao";
+        String serviceSuffix = UserConfigService.removeStartAndEndSplitter(response.getConfig("service.suffix","Service"));
+        String daoSuffix = UserConfigService.removeStartAndEndSplitter(response.getConfig("dao.suffix", "Dao"));
+        String pojoNameService = pojoName + serviceSuffix;
+        String pojoNameDao = pojoName + daoSuffix;
+        String daoName = GenCodeUtil.getLowerCamel(pojoNameDao);
+        String idType = onePojoInfo.getIdType();
         if (!fileInfo.getOldLines().isEmpty()) {
             fileInfo.setNewLines(fileInfo.getOldLines());
             return;
@@ -57,37 +61,36 @@ public class GenServiceService {
             newLines.add("import javax.annotation.Resource;");
             newLines.add("import java.util.List;");
             newLines.add("import "+ onePojoInfo.getPojoPackage() + "." +onePojoInfo.getPojoName() + ";");
-            newLines.add("import "+ onePojoInfo.getDaoPackage() + "." +onePojoInfo.getPojoName() + "Dao;");
+            newLines.add("import "+ onePojoInfo.getDaoPackage() + "." + pojoNameDao +";");
             newLines.add("");
             newLines.add("@Service");
             newLines.add("public class " + pojoName + "Service extends GenericService<" + pojoName + "> {");
             newLines.add("");
             newLines.add("    @Resource");
             newLines.add(
-                    GenCodeUtil.ONE_RETRACT + "private " + pojoName + "Dao " + GenCodeUtil.getLowerCamel(pojoName) + "Dao;");
+                    GenCodeUtil.ONE_RETRACT + "private " + pojoNameDao + " " + daoName + ";");
             newLines.add("");
             newLines.add("    @Override");
             newLines.add(GenCodeUtil.ONE_RETRACT + "public GenericDao<" + pojoName + "> getGenericDao() {");
-            newLines.add(GenCodeUtil.TWO_RETRACT + "return " + GenCodeUtil.getLowerCamel(pojoNameDao) + ";");
+            newLines.add(GenCodeUtil.TWO_RETRACT + "return " + daoName + ";");
             newLines.add(GenCodeUtil.ONE_RETRACT + "}");
             newLines.add("}");
             fileInfo.setNewLines(newLines);
         }else{
             List<String> newLines = Lists.newArrayList();
-            String daoName = GenCodeUtil.getLowerCamel(pojoName) + "Dao";
             newLines.add("package "+ onePojoInfo.getServicePackage() + ";");
             newLines.add("");
             newLines.add("import org.springframework.stereotype.Service;");
             newLines.add("import javax.annotation.Resource;");
             newLines.add("import java.util.List;");
             newLines.add("import "+ onePojoInfo.getPojoPackage() + "." +onePojoInfo.getPojoName() + ";");
-            newLines.add("import "+ onePojoInfo.getDaoPackage() + "." +onePojoInfo.getPojoName() + "Dao;");
+            newLines.add("import "+ onePojoInfo.getDaoPackage() + "." + pojoNameDao + ";");
             newLines.add("");
             newLines.add("@Service");
-            newLines.add("public class " + pojoName + "Service {");
+            newLines.add("public class " +  pojoNameService + " {");
             newLines.add("");
             newLines.add("    @Resource");
-            newLines.add(GenCodeUtil.ONE_RETRACT + "private " + pojoName + "Dao " + daoName + ";");
+            newLines.add(GenCodeUtil.ONE_RETRACT + "private " + pojoNameDao + " " + daoName + ";");
             newLines.add("");
             newLines.add(GenCodeUtil.ONE_RETRACT + "public int "+ MethodName.insert.name() +"("+pojoName +" pojo){");
             newLines.add(GenCodeUtil.TWO_RETRACT + "return "+daoName + "."+ MethodName.insert.name() +"(pojo);");
@@ -106,6 +109,10 @@ public class GenServiceService {
             newLines.add(GenCodeUtil.TWO_RETRACT + "return "+daoName + "."+ MethodName.update.name() +"(pojo);");
             newLines.add(GenCodeUtil.ONE_RETRACT + "}");
             newLines.add("");
+//            newLines.add(GenCodeUtil.ONE_RETRACT +"public int "+ MethodName.delete.name() +"("+ idType +" id){");
+//            newLines.add(GenCodeUtil.TWO_RETRACT + "return "+daoName + "."+ MethodName.delete.name() +"(id);");
+//            newLines.add(GenCodeUtil.ONE_RETRACT + "}");
+//            newLines.add("");
             newLines.add("}");
             fileInfo.setNewLines(newLines);
         }

@@ -108,6 +108,12 @@ public class UserConfigService {
             config.setSqlDir(removeStartAndEndSplitter(userConfigMap.get("sql.path")));
             config.setMapperDir(removeStartAndEndSplitter(userConfigMap.get("mapper.path")));
             config.setServiceDir(removeStartAndEndSplitter(userConfigMap.get("service.path")));
+            config.setMapperSuffix(removeStartAndEndSplitter(userConfigMap.get("mapper.suffix")));
+            config.setDaoSuffix(removeStartAndEndSplitter(userConfigMap.get("dao.suffix")));
+            config.setServiceSuffix(removeStartAndEndSplitter(userConfigMap.get("service.suffix")));
+            config.setMapperModulePath(removeStartAndEndSplitter(userConfigMap.get("mapper.module.path")));
+            config.setDaoModulePath(removeStartAndEndSplitter(userConfigMap.get("dao.module.path")));
+            config.setServiceModulePath(removeStartAndEndSplitter(userConfigMap.get("service.module.path")));
         }catch(Exception e){
             LOGGER.error(" status error occurred :{}",response,e);
             return response.failure(" status error occurred");
@@ -126,6 +132,17 @@ public class UserConfigService {
             ret =  s.substring(1);
         }
         if(s.endsWith(splitter)){
+            ret = ret.substring(0, ret.length() -1);
+        }
+        return ret;
+    }
+
+    public static String removeEndCharacter(String s, String character) {
+        if(StringUtils.isBlank(s)){
+            return s;
+        }
+        String ret = s.trim();
+        if(s.endsWith(character)){
             ret = ret.substring(0, ret.length() -1);
         }
         return ret;

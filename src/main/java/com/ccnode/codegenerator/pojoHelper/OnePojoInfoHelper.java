@@ -2,6 +2,8 @@
 package com.ccnode.codegenerator.pojoHelper;
 
 import com.ccnode.codegenerator.enums.FileType;
+import com.ccnode.codegenerator.enums.SupportFieldClass;
+import com.ccnode.codegenerator.genCode.UserConfigService;
 import com.ccnode.codegenerator.pojo.BaseResponse;
 import com.ccnode.codegenerator.pojo.ChangeInfo;
 import com.ccnode.codegenerator.pojo.GenCodeResponse;
@@ -37,6 +39,7 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import static org.apache.commons.io.IOUtils.writeLines;
@@ -112,26 +115,21 @@ public class OnePojoInfoHelper {
             if(isStaticField(field)){
                 continue;
             }
-            String type = field.getType().getPresentableText();
-            if(!isSupportType(type)){
+            SupportFieldClass fieldClass = SupportFieldClass.fromDesc(field.getType().getCanonicalText());
+            LOGGER.info("parseIdeaFieldInfo  canonicalText :{}", field.getType().getCanonicalText());
+            if(fieldClass == SupportFieldClass.NONE){
                 continue;
             }
             PojoFieldInfo fieldInfo = new PojoFieldInfo();
             fieldInfo.setFieldComment(parseComment(field));
             fieldInfo.setFieldName(field.getName());
-            fieldInfo.setFieldClass(type);
+            fieldInfo.setFieldClass(fieldClass);
             fieldInfo.setAnnotations(Lists.newArrayList());
-            fieldList.add(fieldInfo);
+            if(!StringUtils.containsIgnoreCase(fieldInfo.getFieldComment(), "IgnoreAutoGenerate")) {
+                fieldList.add(fieldInfo);
+            }
         }
         onePojoInfo.setPojoFieldInfos(fieldList);
-    }
-
-    private static Boolean isSupportType(String fieldType){
-        if(StringUtils.isBlank(fieldType)){
-            return false;
-        }
-        List<String> supportList= ImmutableList.of("string","integer","int","short","date","long","bigdecimal","double","float");
-        return supportList.contains(fieldType.toLowerCase());
     }
 
     private static Boolean isStaticField(@NotNull PsiField field){
@@ -185,7 +183,7 @@ public class OnePojoInfoHelper {
         onePojoInfo.setPojoFieldInfos(fieldInfoList);
         for (Field field : fields) {
             PojoFieldInfo fieldInfo = new PojoFieldInfo();
-            fieldInfo.setFieldClass(StringUtils.EMPTY);
+            fieldInfo.setFieldClass(SupportFieldClass.NONE);
             fieldInfo.setFieldName(field.getName());
             fieldInfo.setAnnotations(Lists.newArrayList(field.getDeclaredAnnotations()));
             fieldInfoList.add(fieldInfo);
@@ -197,7 +195,8 @@ public class OnePojoInfoHelper {
         if(daoFile == null){
             return;
         }
-        String deducePackage = GenCodeUtil.deducePackage(onePojoInfo.getFullDaoPath() ,onePojoInfo.getPojoPackage(),onePojoInfo.getFullPojoPath());
+        String daoModulePath = UserConfigService.removeStartAndEndSplitter(response.getUserConfigMap().get("dao.module.path"));
+        String deducePackage = GenCodeUtil.deducePackage(onePojoInfo.getFullDaoPath() ,onePojoInfo.getPojoPackage(),onePojoInfo.getFullPojoPath(),daoModulePath);
         for (String s : daoFile.getOriginLines()) {
             if(s.trim().contains("package ")){
                 deducePackage = parsePackage(s);
@@ -212,7 +211,8 @@ public class OnePojoInfoHelper {
         if(serviceFile == null){
             return;
         }
-        String deducePackage = GenCodeUtil.deducePackage(onePojoInfo.getFullServicePath() ,onePojoInfo.getPojoPackage(),onePojoInfo.getFullPojoPath());
+        String serviceModulePath = UserConfigService.removeStartAndEndSplitter(response.getUserConfigMap().get("service.module.path"));
+        String deducePackage = GenCodeUtil.deducePackage(onePojoInfo.getFullServicePath() ,onePojoInfo.getPojoPackage(),onePojoInfo.getFullPojoPath(), serviceModulePath);
         for (String s : serviceFile.getOriginLines()) {
             if(s.trim().contains("package ")){
                 deducePackage = parsePackage(s);
@@ -291,7 +291,7 @@ public class OnePojoInfoHelper {
                 if(lines == null || lines.isEmpty()){
                     lines = generatedFile.getOriginLines();
                 }
-                writeLines(lines, "\n", new FileOutputStream(generatedFile.getFile()));
+                writeLines(lines, "\n", new FileOutputStream(generatedFile.getFile()), Charset.forName(response.getConfig("fileCharset", "UTF-8")));
                 LOGGER.info(" flushFiles, affected file :{}", generatedFile.getFile().getAbsolutePath());
             }
             Pair<List<ChangeInfo>, List<ChangeInfo>> pair = statisticChange(response.getPojoInfos());
